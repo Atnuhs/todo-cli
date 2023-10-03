@@ -1,18 +1,10 @@
-package internal
+package app
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"path/filepath"
 	"strings"
 )
-
-func ShowContent(r io.Reader) string {
-	var bf bytes.Buffer
-	bf.ReadFrom(r)
-	return bf.String()
-}
 
 func Dates(todoRoot string) ([]string, error) {
 	files, err := filepath.Glob(filepath.Join(todoRoot, "*.md"))

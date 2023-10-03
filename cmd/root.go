@@ -1,49 +1,59 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/spf13/cobra"
 
-	"todo-cli/internal"
+	"todo-cli/app"
 )
 
 const TodoRoot = "todo"
 
-// rootCmd represents the base command when called without any subcommands
 var (
-	date    string
+	dateStr string
+
 	rootCmd = &cobra.Command{
 		Use:   "todo-cli",
 		Short: "todo kanri on cli",
+		Run: func(cmd *cobra.Command, args []string) {
+			dDst, err := app.BaseNameToTime(dateStr)
+			if err != nil {
+				log.Fatal(err)
+			}
+			dSrc := dDst.AddDate(0, 0, -1)
+			pDst := filepath.Join(TodoRoot, fmt.Sprintf("%s.md", dDst.Format(app.TimeFormat)))
+			pSrc := filepath.Join(TodoRoot, fmt.Sprintf("%s.md", dSrc.Format(app.TimeFormat)))
+			_, err = os.Stat(pSrc)
+			if os.IsNotExist(err) {
+				log.Fatal(err)
+			}
+			_, err = os.Stat(pDst)
+			if !os.IsNotExist(err) {
+				log.Fatal(fmt.Errorf("%s is alredy exist", pDst))
+			}
+
+			fSrc, err := os.Open(pSrc)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer fSrc.Close()
+
+			fDst, err := os.Create(pDst)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer fDst.Close()
+
+			app.CarryOver(fSrc, fDst)
+		},
 	}
 )
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
@@ -52,29 +62,5 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.todo-cli.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.AddCommand([]*cobra.Command{
-		{
-			Use: "completion",
-			Run: func(cmd *cobra.Command, args []string) {
-				rootCmd.GenFishCompletion(os.Stdout, cobra.EnableCaseInsensitive)
-			},
-		},
-	}...)
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	rootCmd.PersistentFlags().StringVarP(&date, "date", "D", internal.Basename(time.Now()), "Date to show todo")
-	rootCmd.RegisterFlagCompletionFunc("date", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		cmp, err := internal.Dates(TodoRoot)
-		if err != nil {
-			log.Fatal(err)
-		}
-		return cmp, cobra.ShellCompDirectiveDefault
-	})
+	rootCmd.PersistentFlags().StringVarP(&dateStr, "date", "D", app.TimeToBasename(time.Now()), "Date to show todo")
 }

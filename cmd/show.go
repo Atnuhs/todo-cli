@@ -11,10 +11,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"todo-cli/internal"
+	"todo-cli/app"
 )
-
-const DirTodo = "todo"
 
 func fuga(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	switch len(args) {
@@ -35,13 +33,13 @@ var (
 		Use:   "show",
 		Short: "Show your task as markdown form",
 		Run: func(cmd *cobra.Command, args []string) {
-			targetPath := filepath.Join(DirTodo, fmt.Sprintf("%s.md", date))
+			targetPath := filepath.Join(TodoRoot, fmt.Sprintf("%s.md", dateStr))
 			f, err := os.Open(targetPath)
 			if err != nil {
 				log.Fatal(err)
 			}
 			defer f.Close()
-			fmt.Println(internal.ShowContent(f))
+			fmt.Println(app.ShowContent(f))
 		},
 	}
 )
